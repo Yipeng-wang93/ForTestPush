@@ -1,288 +1,343 @@
 package healthDataRecords;
 
+// Import necessary JavaFX components
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.TreeItem;
 import startingPoint.Main;
-//import com.fasterxml.jackson.databind.ObjectMapper;
-//import java.io.File;
-//import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
+import java.io.BufferedReader; // For reading input from server
+import java.io.InputStreamReader; // To read input streams
+import java.io.PrintWriter; // To write to the server
+import java.net.Socket; // For establishing network communication
+
+/**
+ * Controller for managing the Health Data Records UI.
+ * It facilitates interactions between the JavaFX UI and the backend server.
+ */
 public class HealthDataRecordsController {
 
-    private Main mainApp; // Reference to the main application for navigation
-    // private final String DATA_FILE_PATH = "healthMetricsData.json"; // File path for data storage (commented out for future use)
+    private Main mainApp; // Reference to the main application
 
     @FXML
-    private MenuBar healthDataRecordsMenuBar; // Menu bar for health data records screen
+    private MenuBar healthDataRecordsMenuBar; // Menu bar for navigation options
 
     @FXML
-    private TreeView<String> healthMetricsTreeView; // TreeView for displaying health metrics categories and items
+    private TreeView<String> healthMetricsTreeView; // TreeView for displaying health metrics
 
     @FXML
-    private TextField patientNameTextField; // Text field to display patient's name
+    private TextField patientNameTextField; // TextField for patient name
 
     @FXML
-    private TextField ageTextField; // Text field to display patient's age
+    private TextField ageTextField; // TextField for patient age
 
     @FXML
-    private TextField genderTextField; // Text field to display patient's gender
+    private TextField genderTextField; // TextField for patient gender
 
     @FXML
-    private TextField bloodTypeTextField; // Text field to display patient's blood type
+    private TextField bloodTypeTextField; // TextField for patient blood type
 
     @FXML
-    private TextField heightTextField; // Text field to display patient's height
+    private TextField heightTextField; // TextField for patient height
 
     @FXML
-    private TextField weightTextField; // Text field to display patient's weight
+    private TextField weightTextField; // TextField for patient weight
 
     @FXML
-    private TextArea healthDataDisplayTextArea; // Text area for displaying selected health metric details
+    private TextArea healthDataDisplayTextArea; // TextArea for displaying selected metric details
 
     @FXML
-    private Button hDRModifyButton; // Button for modifying health metric data
+    private Button hDRModifyButton; // Button to enable modification of data
 
     @FXML
-    private Button hDRSaveButton; // Button for saving modified health metric data
+    private Button hDRSaveButton; // Button to save modified data
 
     @FXML
-    private Button hDRDeleteButton; // Button for deleting health metric data
+    private Button hDRDeleteButton; // Button to delete selected data
 
     @FXML
-    private Button hDRBackToTechnicianHomeButton; // Button to return to Technician Home
+    private Button hDRBackToTechnicianHomeButton; // Button to navigate back to Technician Home
 
-    private boolean isEditable = false; // Flag to check if data is currently editable
+    private static final String SERVER_HOST = "localhost"; // Server host address
+    private static final int SERVER_PORT = 8080; // Server port
 
-    // Placeholder for health metrics data storage
-    private Map<String, String> healthMetricsData;
+    private String selectedMetric = null; // The currently selected metric
+    private String originalRecordId = null; // The record ID of the selected metric
+    private String originalValue = null; // The original value of the selected metric
+    private boolean isEditable = false; // Flag to check if the data is editable
 
+    /**
+     * Initializes the controller.
+     * Sets up the TreeView with health metrics and establishes event listeners.
+     */
     @FXML
     public void initialize() {
-        // Initialize the TreeView structure
-        initializeTreeView();
-        // Load default patient information
-        loadPatientInfo();
-        // Load sample data for health metrics
-        loadSampleHealthMetricsData();
-        // Setup a listener for changes in TreeView selection
-        setupTreeViewListener();
+        initializeTreeView(); // Initialize the TreeView structure
+        setupTreeViewListener(); // Attach listeners for TreeView events
+        healthDataDisplayTextArea.setEditable(false); // Disable editing for TextArea by default
     }
 
-    // Method to initialize the TreeView with categories and items
+    /**
+     * Initializes the TreeView with a hierarchy of health metrics.
+     * It creates categories and their respective metrics.
+     */
     private void initializeTreeView() {
-        TreeItem<String> rootItem = new TreeItem<>("Health Metrics"); // Root item of TreeView
-        rootItem.setExpanded(true); // Expand root item
+        TreeItem<String> rootItem = new TreeItem<>("Health Metrics"); // Root node
+        rootItem.setExpanded(true); // Expand root node by default
 
-        // Create "Blood Metrics" category with specific items
+        // Create and add categories to the TreeView
         TreeItem<String> bloodMetrics = new TreeItem<>("Blood Metrics");
         bloodMetrics.getChildren().addAll(
-            new TreeItem<>("Blood Glucose"),
-            new TreeItem<>("Leucocyte Count"),
-            new TreeItem<>("Erythrocyte Count"),
-            new TreeItem<>("Blood Oxygen"),
-            new TreeItem<>("Blood Pressure"),
-            new TreeItem<>("Body Temperature")
+                new TreeItem<>("Blood Glucose"),
+                new TreeItem<>("Leucocyte Count"),
+                new TreeItem<>("Erythrocyte Count"),
+                new TreeItem<>("Blood Oxygen"),
+                new TreeItem<>("Blood Pressure"),
+                new TreeItem<>("Body Temperature")
         );
 
-        // Create "Heart Metrics" category with specific items
         TreeItem<String> heartMetrics = new TreeItem<>("Heart Metrics");
         heartMetrics.getChildren().addAll(
-            new TreeItem<>("Heart Rate"),
-            new TreeItem<>("Cholesterol Level"),
-            new TreeItem<>("Coronary Artery Calcium")
+                new TreeItem<>("Heart Rate"),
+                new TreeItem<>("Cholesterol Level"),
+                new TreeItem<>("Coronary Artery Calcium")
         );
 
-        // Create "Respiratory Metrics" category with specific items
         TreeItem<String> respiratoryMetrics = new TreeItem<>("Respiratory Metrics");
         respiratoryMetrics.getChildren().addAll(
-            new TreeItem<>("Respiratory Rate"),
-            new TreeItem<>("Vital Capacity")
+                new TreeItem<>("Respiratory Rate"),
+                new TreeItem<>("Vital Capacity")
         );
 
-        // Add categories to the root item
+        // Add categories to the root
         rootItem.getChildren().addAll(bloodMetrics, heartMetrics, respiratoryMetrics);
-        healthMetricsTreeView.setRoot(rootItem); // Set root item for TreeView
+        healthMetricsTreeView.setRoot(rootItem); // Set the root node
     }
 
-    // Method to load patient information into text fields
-    private void loadPatientInfo() {
-        setPatientInfo("Yipeng Wang", "30", "Male", "O+", "180 cm", "80 kg"); // Set sample data
-        healthDataDisplayTextArea.setText("Select a health metric from the list to view details."); // Default message in TextArea
-    }
-
-    // Method to load sample health metrics data into the map
-    private void loadSampleHealthMetricsData() {
-        healthMetricsData = new HashMap<>(); // Initialize map
-        healthMetricsData.put("Blood Glucose", "Blood Glucose Level: 100 mg/dL");
-        healthMetricsData.put("Leucocyte Count", "Leucocyte Count: 6800 cells/mcL");
-        healthMetricsData.put("Erythrocyte Count", "Erythrocyte Count: 4 million cells/mcL");
-        healthMetricsData.put("Blood Oxygen", "Blood Oxygen Level: 97%");
-        healthMetricsData.put("Blood Pressure", "Blood Pressure: 130/70 mmHg");
-        healthMetricsData.put("Body Temperature", "Body Temperature: 96.6°F");
-        healthMetricsData.put("Heart Rate", "Heart Rate: 72 bpm");
-        healthMetricsData.put("Cholesterol Level", "Cholesterol Level: 190 mg/dL");
-        healthMetricsData.put("Coronary Artery Calcium", "Coronary Artery Calcium: 310 Agatston units");
-        healthMetricsData.put("Respiratory Rate", "Respiratory Rate: 15 breaths/min");
-        healthMetricsData.put("Vital Capacity", "Vital Capacity: 5 liters");
-    }
-
-    // Method to set up a listener for changes in TreeView selection
+    /**
+     * Sets up a listener for the TreeView to detect when a metric is selected.
+     * When a metric is selected, its details are fetched from the server.
+     */
     private void setupTreeViewListener() {
         healthMetricsTreeView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) { // If an item is selected
-                String selectedMetric = newValue.getValue(); // Get selected metric name
-                displayHealthMetricData(selectedMetric); // Display data for selected metric
-                isEditable = false; // Set to non-editable
-                healthDataDisplayTextArea.setEditable(false); // Disable editing in TextArea
+            if (newValue != null && newValue.isLeaf()) { // Only act on leaf nodes (metrics)
+                selectedMetric = newValue.getValue(); // Get the selected metric
+                fetchMetricValueFromServer(selectedMetric); // Fetch data for the selected metric
             }
         });
     }
 
-    // Method to display health metric data in TextArea
-    private void displayHealthMetricData(String metric) {
-        String data = healthMetricsData.getOrDefault(metric, "No data available for " + metric); // Get metric data or default message
-        healthDataDisplayTextArea.setText(data); // Set data in TextArea
-        System.out.println("Displaying data for: " + metric); // Log display action
+    /**
+     * Fetches the value of a selected metric from the server.
+     * @param metric The selected metric.
+     */
+    private void fetchMetricValueFromServer(String metric) {
+        try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            String patientId = patientNameTextField.getText(); // Retrieve the patient ID
+            out.println("GET:" + patientId + ":" + metric); // Send GET request to server
+            String line = in.readLine(); // Read server response
+
+            if (line != null && !line.equals("No records found.")) { // If record exists
+                String[] parts = line.split(", ");
+                if (parts.length == 5) {
+                    originalRecordId = parts[0]; // Extract record ID
+                    originalValue = parts[3]; // Extract value
+                    healthDataDisplayTextArea.setText( // Display details in the TextArea
+                            "Metric: " + metric + "\n" +
+                            "Record ID: " + parts[0] + "\n" +
+                            "Patient ID: " + parts[1] + "\n" +
+                            "Value: " + parts[3] + "\n" +
+                            "Date Recorded: " + parts[4]
+                    );
+                }
+            } else {
+                // Handle case where no record exists for the metric
+                originalRecordId = null;
+                originalValue = null;
+                healthDataDisplayTextArea.setText("Metric: " + metric + "\nValue: No records found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to fetch data from the server.");
+        }
     }
 
-    // Event handler for "Modify" button
+    /**
+     * Enables editing of the selected metric's value.
+     */
     @FXML
     private void onModifyData() {
-        if (healthMetricsTreeView.getSelectionModel().getSelectedItem() != null) { // Check if a metric is selected
+        if (selectedMetric != null) {
             isEditable = true; // Allow editing
-            healthDataDisplayTextArea.setEditable(true); // Enable TextArea for editing
-            System.out.println("Modify button clicked - data is now editable."); // Log action
+            healthDataDisplayTextArea.setEditable(true); // Enable TextArea editing
+
+            if (originalValue == null) {
+                // Inform user that a new record will be created
+                showAlert("Info", "No existing record found for this metric. You can add a new value.");
+            } else {
+                showAlert("Info", "You can now modify the value in the TextArea.");
+            }
         } else {
-            showAlert("No Selection", "Please select a health metric to modify."); // Show alert if no metric is selected
+            showAlert("Error", "Please select a valid metric to modify.");
         }
     }
 
-    // Event handler for "Save" button
+    /**
+     * Saves the updated or new value of the selected metric to the server.
+     */
     @FXML
     private void onSaveData() {
-        if (isEditable) { // Check if editing is allowed
-            String modifiedData = healthDataDisplayTextArea.getText(); // Get modified data from TextArea
-            String selectedMetric = healthMetricsTreeView.getSelectionModel().getSelectedItem().getValue(); // Get selected metric name
+        if (isEditable) {
+            String modifiedValue = null;
+            String[] lines = healthDataDisplayTextArea.getText().split("\n");
 
-            if (validateMetricInput(selectedMetric, modifiedData)) { // Validate input data
-                healthMetricsData.put(selectedMetric, modifiedData); // Save modified data in map
-                healthDataDisplayTextArea.setEditable(false); // Set TextArea to non-editable
-                isEditable = false; // Reset edit flag
-                System.out.println("Save button clicked - data saved: " + modifiedData); // Log save action
+            // Extract the modified value from the TextArea
+            for (String line : lines) {
+                if (line.startsWith("Value: ")) {
+                    modifiedValue = line.replace("Value: ", "").trim();
+                }
+            }
+
+            if (modifiedValue != null) {
+                boolean success = saveToServer(originalRecordId, selectedMetric, modifiedValue);
+                if (success) {
+                    originalValue = modifiedValue; // Update local copy
+                    healthDataDisplayTextArea.setEditable(false); // Disable editing
+                    isEditable = false; // Reset editing flag
+                    showAlert("Success", "Value successfully updated or added!");
+                } else {
+                    showAlert("Error", "Failed to save data to the server.");
+                }
+            } else {
+                showAlert("Error", "No valid value found to save.");
             }
         } else {
-            showAlert("Modify First", "Please click 'Modify' to enable editing."); // Show alert if data is not editable
+            showAlert("Error", "Editing is not enabled.");
         }
     }
 
-    // Method to validate input data based on the metric type
-    private boolean validateMetricInput(String metric, String value) {
-        try {
-            double numericValue = Double.parseDouble(value.replaceAll("[^0-9.]", "")); // Extract numeric value
-            switch (metric) {
-                case "Blood Glucose":
-                    if (numericValue < 70 || numericValue > 140) {
-                        showAlert("Invalid Input", "Blood Glucose must be between 70 and 140 mg/dL.");
-                        return false;
-                    }
-                    break;
-                case "Blood Pressure":
-                    if (numericValue < 90 || numericValue > 180) {
-                        showAlert("Invalid Input", "Blood Pressure must be between 90 and 180 mmHg.");
-                        return false;
-                    }
-                    break;
-                case "Body Temperature":
-                    if (numericValue < 95 || numericValue > 99) {
-                        showAlert("Invalid Input", "Body Temperature must be between 95°F and 99°F.");
-                        return false;
-                    }
-                    break;
-                case "Heart Rate":
-                    if (numericValue < 60 || numericValue > 100) {
-                        showAlert("Invalid Input", "Heart Rate must be between 60 and 100 bpm.");
-                        return false;
-                    }
-                    break;
-                default:
-                    break;
+    /**
+     * Sends a request to delete the selected metric from the server.
+     */
+    @FXML
+    private void onDeleteData() {
+        if (selectedMetric != null && originalRecordId != null) {
+            if (deleteFromServer(originalRecordId)) {
+                healthDataDisplayTextArea.clear(); // Clear the display area
+                showAlert("Success", "Metric deleted successfully!");
+            } else {
+                showAlert("Error", "Failed to delete metric.");
             }
-            return true; // Validation passed
-        } catch (NumberFormatException e) {
-            showAlert("Invalid Input", "Please enter a valid numeric value for " + metric); // Show alert if input is invalid
+        } else {
+            showAlert("Error", "Please select a metric to delete.");
+        }
+    }
+
+    /**
+     * Navigates back to the Technician Home view.
+     */
+    @FXML
+    private void onBack() {
+        if (mainApp != null) {
+            mainApp.loadTechnicianHome(); // Switch to Technician Home
+        }
+    }
+
+    /**
+     * Sends a save or update request to the server.
+     * @param recordId The ID of the record (null for new records).
+     * @param metric The metric being saved or updated.
+     * @param value The value for the metric.
+     * @return True if the operation succeeds, false otherwise.
+     */
+    private boolean saveToServer(String recordId, String metric, String value) {
+        try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+
+            String patientId = patientNameTextField.getText();
+
+            if (metric == null || value == null || patientId.isEmpty()) {
+                showAlert("Error", "Invalid data. Please ensure all fields are filled.");
+                return false;
+            }
+
+            out.println("UPDATE_OR_INSERT:" + patientId + ":" + metric + ":" + value);
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to connect to the server.");
             return false;
         }
     }
 
-    // Method to show an alert dialog
+    /**
+     * Sends a delete request to the server for a specific record.
+     * @param recordId The ID of the record to delete.
+     * @return True if the operation succeeds, false otherwise.
+     */
+    private boolean deleteFromServer(String recordId) {
+        try (Socket socket = new Socket(SERVER_HOST, SERVER_PORT);
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+
+            out.println("DELETE:" + recordId);
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Displays an alert box with a message.
+     * @param title The title of the alert box.
+     * @param message The message to display.
+     */
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR); // Create error alert
-        alert.setTitle(title); // Set alert title
-        alert.setHeaderText(null); // Remove header text
-        alert.setContentText(message); // Set alert message
-        alert.showAndWait(); // Display alert
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 
-    // Event handler for "Delete" button
-    @FXML
-    private void onDeleteData() {
-        healthDataDisplayTextArea.clear(); // Clear TextArea
-        System.out.println("Delete button clicked - data cleared."); // Log action
-    }
-
-    // Event handler for "Back" button
-    @FXML
-    private void onBack() {
-        mainApp.loadTechnicianHome(); // Navigate back to Technician Home view
-        System.out.println("Back button clicked - returning to Technician Home."); // Log navigation
-    }
-
-    // Method to set patient information in the respective TextFields
-    public void setPatientInfo(String name, String age, String gender, String bloodType, String height, String weight) {
-        patientNameTextField.setText(name != null ? name : "Unknown");
-        ageTextField.setText(age != null ? age : "Unknown");
-        genderTextField.setText(gender != null ? gender : "Unknown");
-        bloodTypeTextField.setText(bloodType != null ? bloodType : "Unknown");
-        heightTextField.setText(height != null ? height : "Unknown");
-        weightTextField.setText(weight != null ? weight : "Unknown");
-    }
-
-    // Method to set the main application reference
+    /**
+     * Sets the reference to the main application.
+     * @param mainApp The main application instance.
+     */
     public void setMainApp(Main mainApp) {
         this.mainApp = mainApp;
     }
 
-    // Methods to load and save data to a file for persistence (commented out for future use)
-    /*
-    public void loadDataFromFile() {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            File file = new File(DATA_FILE_PATH);
-            if (file.exists()) {
-                healthMetricsData = mapper.readValue(file, HashMap.class);
-                System.out.println("Data loaded from file.");
-            } else {
-                healthMetricsData = new HashMap<>();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    /**
+     * Populates the patient information fields with provided data.
+     * @param name The patient's name.
+     * @param age The patient's age.
+     * @param gender The patient's gender.
+     * @param bloodType The patient's blood type.
+     * @param height The patient's height.
+     * @param weight The patient's weight.
+     */
+    public void setPatientInfo(String name, String age, String gender, String bloodType, String height, String weight) {
+        patientNameTextField.setText(name);
+        ageTextField.setText(age);
+        genderTextField.setText(gender);
+        bloodTypeTextField.setText(bloodType);
+        heightTextField.setText(height);
+        weightTextField.setText(weight);
     }
-    
-    public void saveDataToFile() {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            mapper.writeValue(new File(DATA_FILE_PATH), healthMetricsData);
-            System.out.println("Data saved to file.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-    */
 }
+
+
+
+
+
+
+
+
 
 
 

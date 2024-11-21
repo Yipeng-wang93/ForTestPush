@@ -59,7 +59,7 @@
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
-                  <Label text="User Name Or ID:" />
+                  <Label text="Patient ID:" />
                   <TextField fx:id="techHomeUserNameOrIdTextField" GridPane.columnIndex="1" />
                   <Label text="Date:" GridPane.rowIndex="1" />
                   <DatePicker fx:id="techHomeDatePicker" GridPane.columnIndex="1" GridPane.rowIndex="1" />
@@ -78,9 +78,9 @@
               <columns>
                 <TableColumn fx:id="techHomeRecordIdColumn" prefWidth="100.0" text="Record ID" />
                 <TableColumn fx:id="techHomePatientIdColumn" prefWidth="100.0" text="Patient ID" />
-                <TableColumn fx:id="techHomeUserNameColumn" prefWidth="100.0" text="User Name" />
-                <TableColumn fx:id="techHomeEntryCreatedTimeColumn" prefWidth="145.0" text="Entry Created Time" />
-                <TableColumn fx:id="techHomeEntryUpdatedTimeColumn" prefWidth="145.0" text="Entry Updated Time" />
+                <TableColumn fx:id="techHomeUserNameColumn" prefWidth="100.0" text="Metric" />
+                <TableColumn fx:id="techHomeEntryCreatedTimeColumn" prefWidth="145.0" text="Value" />
+                <TableColumn fx:id="techHomeEntryUpdatedTimeColumn" prefWidth="145.0" text="Record Created Time" />
               </columns>
             </TableView>
             <Button fx:id="techHomeViewButton" alignment="CENTER" mnemonicParsing="false" onAction="#onViewHealthData" text="View" />

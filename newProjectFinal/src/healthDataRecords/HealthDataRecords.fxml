@@ -62,7 +62,7 @@
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
-                  <Label text="Patient Name:" />
+                  <Label text="Patient ID:" />
                   <Label text="Age:" GridPane.rowIndex="1" />
                   <Label text="Gender:" GridPane.rowIndex="2" />
                   <Label text="Blood Type:" GridPane.columnIndex="2" />
